@@ -1,6 +1,6 @@
 #!/usr/bin/ruby
 # == NAME
-# mixs_json2tab.rb
+# ena_json2tab.rb
 #
 # == USAGE
 # ./this_script.rb [ -h | --help ]
@@ -36,14 +36,21 @@ opts.parse!
 
 json = JSON.parse(IO.readlines(options.json).join("\n"))
 
-required  = json["required"]
+experiment  = json["experiment"]
 
-properties = json["properties"]
+fields = experiment["fields"]
 
-properties.each do |prop,elements|
+puts "key\tdescription\tunits\tcardinality\tvalues"
 
-  required.include?(prop) ? r = true : r = false
-  
-  puts "#{prop}\t#{elements['description']}\t#{elements['type']}\t#{r}"
+fields.each do |field|
+
+  name = field["name"]
+  cardinality = field["cardinality"]
+  description = field["description"]
+  units = field["units"]
+  allowed_values = field["cv"].join(",")
+  field_type = field["field_type"]
+
+  puts "#{name}\t#{description}\t#{units}\t#{cardinality}\t#{allowed_values}"
 
 end
