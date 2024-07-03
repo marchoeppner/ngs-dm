@@ -32,6 +32,7 @@ require 'rubyXL/convenience_methods/worksheet'
 options = OpenStruct.new()
 opts = OptionParser.new()
 opts.on("-j","--json", "=JSON","JSON schema file") {|argument| options.json = argument }
+opts.on("-n","--name", "=NAME","Project name") {|argument| options.name = argument }
 opts.on("-o","--output", "=OUTPUT","Output file") {|argument| options.output = argument }
 opts.on("-h","--help","Display the usage information") {
  puts opts
@@ -45,7 +46,8 @@ defaults = {
   "library_strategy" => [ "WGS", "AMPLICON"],
   "platform" => [ "ILLUMINA", "OXFORD_NANOPORE" ],
   "instrument_model" => [ "Illumina MiSeq" , "MinION"],
-  "library_layout" => [ "PAIRED" ]
+  "library_layout" => [ "PAIRED" ],
+  "library_construction_protocol" => [ "Amtliche Methode L00.00-184", "Illumina DNA prep"]
 }
 
 mandatory = [ "library_name","library_construction_protocol" ]
@@ -55,6 +57,7 @@ bg_color = { "even" => "dceef9", "uneven" => "b3c8d5"}
 order = [ "library_name","sample_alias", "study_alias"]
 
 abort "Missing output file argument" unless options.output
+abort "Missing a name" unless options.name
 
 json = JSON.parse(IO.readlines(options.json).join("\n"))
 
@@ -68,8 +71,9 @@ experiment.map {|e| data << e }
 sample.each do |s|
   data << s unless data.find{|d| d["name"] == s["name"]}
 end
-data << { "name" => "external_id", "cardinality" => "mandatory", "cv" => [], "description" => "External identifier"}
-data << { "name" => "external_source", "cardinality" => "mandatory", "cv" => [ "LSH LIMSOPHY" ], "description" => "External identifier source"}
+data << { "name" => "external_id", "cardinality" => "mandatory", "cv" => [], "description" => "External identifier", "field_type" => "TEXT_FIELD"}
+data << { "name" => "external_source", "cardinality" => "mandatory", "cv" => [ "LSH LIMSOPHY" ], "description" => "External identifier source", "field_type" => "TEXT_FIELD"}
+data << { "name" => "project_name", "cardinality" => "mandatory", "cv" => [  ], "description" => "Name of the project", "field_type" => "TEXT_FIELD"}
 
 workbook = RubyXL::Workbook.new
 
@@ -88,6 +92,8 @@ cover.add_cell(0,0,"Metadaten Standard")
 cover.change_column_width(0, 20)
 cover.add_cell(0,1,name)
 cover.change_column_width(1, 20)
+cover.add_cell(1,0,"Projekt")
+cover.add_cell(1,1,options.name)
 
 #####################
 # Metadata sheet
@@ -147,5 +153,39 @@ data_ordered.each_with_index do |data,i|
 
 end
 
+fastqs = Dir["*.fastq.gz"]
 
-workbook.write("#{options.output}.xlsx")
+libs = fastqs.group_by{|f| f.split("_L0")[0]}
+
+libs.each do |lib,reads|
+
+  row += 1
+  col = 0
+  
+  library_name = lib
+
+  this_col = data_ordered.index(data_ordered.find{|d| d["name"] == "library_name"})
+  meta.add_cell(row,this_col,library_name)
+
+  sample_alias = lib.split(/_S[0-9]*/)[0]
+
+  this_col = data_ordered.index(data_ordered.find{|d| d["name"] == "sample_alias"})
+  meta.add_cell(row,this_col,sample_alias)
+
+  platform = "ILLUMINA"
+
+  this_col = data_ordered.index(data_ordered.find{|d| d["name"] == "platform"})
+  meta.add_cell(row,this_col,platform)
+
+  instrument = "Illumina MiSeq"
+
+  this_col = data_ordered.index(data_ordered.find{|d| d["name"] == "instrument_model"})
+  meta.add_cell(row,this_col,instrument)
+
+  project = options.name
+
+  this_col = data_ordered.index(data_ordered.find{|d| d["name"] == "project_name"})
+  meta.add_cell(row,this_col,project)
+end
+
+workbook.write("#{options.output}")

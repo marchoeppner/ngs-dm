@@ -43,7 +43,7 @@ fields = experiment["fields"]
 puts "key\tdescription\tunits\tcardinality\tvalues"
 
 fields.each do |field|
-
+  
   name = field["name"]
   cardinality = field["cardinality"]
   description = field["description"]

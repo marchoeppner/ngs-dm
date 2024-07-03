@@ -82,24 +82,10 @@ def metadata_to_info(file_name)
   
 end
 
-def extract_library_id(read_name)
+def run(command)
 
-	# 21Nov52-DL197_S197_L001
-	# 21Nov52-DL070_S70_L001_R2_001.fastq.gz
-	if read_name.match(/^[0-9]+[A-Za-z]+[0-9]+-[A-Z]+[0-9]+_S.*/)
-		return read_name.split("_S")[0]
-        # 220600000501-DS104_22Jun501-DL104_S104_L001
-        elsif read_name.match(/[0-9]+-[A-Z0-9]+_[0-9][0-9][A-Za-z]+[0-9]+-.*/)
-		return read_name.split("_")[1]
-	# 221200000966_22Dez966-L1_S20_L002_R2_001.fastq.gz
-        elsif read_name.match(/[0-9]+_[A-Za-z0-9]+-L[0-9]_.*/)
-		return read_name.split("_")[1]
-	# J39655-L1_S77_L001_R1_001.fastq.gz
-	elsif read_name.match(/^[A-Z0-9]+-L[0-9]_S.*/)
-		return read_name.split("-")[0]
-	else
-		abort "Did not find a regexp that fits these reads (#{read_name})"
-	end
+  warn "Running: #{command}"
+  system(command)
 
 end
 
@@ -109,6 +95,7 @@ opts = OptionParser.new()
 opts.on("-i","--infile", "=INFILE","Input file") {|argument| options.infile = argument }
 opts.on("-p","--pretend","Simulate only") {|argument| options.pretend = true }
 opts.on("-c","--cleanup","Cleanup existing file before loading") {|argument| options.cleanup = true }
+opts.on("-f","--folder","=FOLDER", "iRODS Collection",) {|argument| options.folder = argument }
 opts.on("-h","--help","Display the usage information") {
  puts opts
  exit
@@ -116,20 +103,19 @@ opts.on("-h","--help","Display the usage information") {
 
 opts.parse! 
 
-BASE_URL = "/sfb1182/home"
+abort "Must provide iRODS collection name (--folder)" unless options.folder
 
-ICMD = "singularity exec -B /work_beegfs /zfshome/sw/files/singularity-images/irods-icommands.4.3.0.sif"
-has_singularity = `which singularity`
+BASE_URL = "/lsh/ngs"
 
-raise "Missing singularity in path!" if has_singularity.include?("no singularity in")
+command = "imkdir /lsh/ngs/#{options.folder}"
+run(command)
 
-# Example: F13388-L1_S149_L001_R1_001.fastq.gz
-file_groups = Dir.entries(Dir.getwd).select{|e| e.include?(".fastq.gz")}.group_by{|e| e.split("_R")[0] }
+file_groups = Dir.entries(Dir.getwd).select{|e| e.include?(".fastq.gz")}.group_by{|e| e.split(/_L00/)[0] }
 
 file_groups.each do |group,files|
   
   warn "Processing data set #{group}"  
-  library_id = extract_library_id(group) 
+  library_id = group
   warn library_id
   metadata = library_id + ".meta"
 
@@ -140,7 +126,6 @@ file_groups.each do |group,files|
   meta_string = metadata_to_string(metadata)
   info = metadata_to_info(metadata)
 
-  info.has_key?("crc_project") ? project_id = info["crc_project"] : project_id = info["CRC_PROJECT_ID"]
   meta_sets = metadata_to_imeta(metadata)
 
   tar_file = group + ".tar"
@@ -150,33 +135,31 @@ file_groups.each do |group,files|
     if options.pretend
        warn this_command
     else
-    	system(this_command)
+    	run(this_command)
     end
   end
-  
-  #command = "iput -D tar -f --metadata \"#{meta_string}\" #{tar_file} /CAUZone/sfb1182/#{info['CRC_PROJECT_ID']}/raw_data/#{tar_file}"
 
-  command = "#{ICMD} irm -f #{BASE_URL}/research-#{project_id.downcase}/raw_data/#{tar_file}"
+  command = "irm -f #{BASE_URL}/#{options.folder}/#{tar_file}"
 
   if options.cleanup
 	  if options.pretend
         	warn command
 	  else
-        	system command
+        	run(command)
 	  end
   end
     
-  command = "#{ICMD} iput -D tar -f #{tar_file} #{BASE_URL}/research-#{project_id.downcase}/raw_data/#{tar_file}"
+  command = "iput -R lshArchive -D tar -f #{tar_file} #{BASE_URL}/#{options.folder}/#{tar_file}"
 
   if options.pretend
-	warn command  
+	  warn command  
   else
-  	system command
+  	run(command)
   end
 
   meta_sets.each do |ms|
-  	imeta_cmd = "#{ICMD} imeta add -d #{BASE_URL}/research-#{project_id.downcase}/raw_data/#{tar_file} #{ms}"
-  	system imeta_cmd unless options.pretend
+  	imeta_cmd = "imeta add -d #{BASE_URL}/#{options.folder}/#{tar_file} #{ms}"
+  	run(imeta_cmd) unless options.pretend
   end 
 	    
 end
