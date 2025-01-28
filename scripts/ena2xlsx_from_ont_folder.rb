@@ -46,15 +46,15 @@ defaults = {
   "library_strategy" => [ "WGS", "AMPLICON"],
   "platform" => [ "ILLUMINA", "OXFORD_NANOPORE" ],
   "instrument_model" => [ "Illumina MiSeq" , "MinION"],
-  "library_layout" => [ "PAIRED" ],
-  "library_construction_protocol" => [ "Amtliche Methode L00.00-184", "Illumina DNA prep"]
+  "library_layout" => [ "PAIRED" , "SINGLE"],
+  "library_construction_protocol" => [ "Amtliche Methode L00.00-184", "Illumina DNA prep", "ONT Rapid Barcoding R10.4"]
 }
 
 mandatory = [ "library_name","library_construction_protocol" ]
 
 bg_color = { "even" => "dceef9", "uneven" => "b3c8d5"}
 
-order = [ "library_name","sample_alias", "study_alias"]
+order = [ "library_name", "sample_alias", "study_alias"]
 
 abort "Missing output file argument" unless options.output
 abort "Missing a name" unless options.name
@@ -156,37 +156,43 @@ end
 
 fastqs = Dir["*.fastq.gz"]
 
-libs = fastqs.group_by{|f| f.split("_L00")[0].split(/_R[1,2]/)[0]}
+libs = fastqs.group_by{|f| f.split(/_R[1,2]/)[0]}
 
 libs.each do |lib,reads|
 
-  row += 1
-  col = 0
+  warn lib
+
+    row += 1
+    col = 0
   
-  library_name = lib
+    library_name = lib
 
-  this_col = data_ordered.index(data_ordered.find{|d| d["name"] == "library_name"})
-  meta.add_cell(row,this_col,library_name)
+    this_col = data_ordered.index(data_ordered.find{|d| d["name"] == "library_name"})
+    meta.add_cell(row,this_col,library_name)
 
-  sample_alias = lib.split(/_S[0-9]*/)[0]
+    sample_alias = lib
 
-  this_col = data_ordered.index(data_ordered.find{|d| d["name"] == "sample_alias"})
-  meta.add_cell(row,this_col,sample_alias)
+    this_col = data_ordered.index(data_ordered.find{|d| d["name"] == "sample_alias"})
+    meta.add_cell(row,this_col,sample_alias)
 
-  platform = "ILLUMINA"
+    platform = "OXFORD_NANOPORE"
 
-  this_col = data_ordered.index(data_ordered.find{|d| d["name"] == "platform"})
-  meta.add_cell(row,this_col,platform)
+    this_col = data_ordered.index(data_ordered.find{|d| d["name"] == "platform"})
+    meta.add_cell(row,this_col,platform)
 
-  instrument = "Illumina MiSeq"
+    instrument = "ONT Minion"
 
-  this_col = data_ordered.index(data_ordered.find{|d| d["name"] == "instrument_model"})
-  meta.add_cell(row,this_col,instrument)
+    this_col = data_ordered.index(data_ordered.find{|d| d["name"] == "instrument_model"})
+    meta.add_cell(row,this_col,instrument)
 
-  project = options.name
+    project = options.name
 
-  this_col = data_ordered.index(data_ordered.find{|d| d["name"] == "project_name"})
-  meta.add_cell(row,this_col,project)
+    this_col = data_ordered.index(data_ordered.find{|d| d["name"] == "project_name"})
+    meta.add_cell(row,this_col,project)
+
+    library_layout = "SINGLE"
+    this_col = data_ordered.index(data_ordered.find{|d| d["name"] == "library_layout"})
+    meta.add_cell(row,this_col,library_layout)
 end
 
 workbook.write("#{options.output}")

@@ -110,7 +110,7 @@ BASE_URL = "/lsh/ngs"
 command = "imkdir /lsh/ngs/#{options.folder}"
 run(command)
 
-file_groups = Dir.entries(Dir.getwd).select{|e| e.include?(".fastq.gz")}.group_by{|e| e.split(/_L00/)[0] }
+file_groups = Dir.entries(Dir.getwd).select{|e| e.include?(".fastq.gz")}.group_by{|e| e.split(/_L00/)[0].split(/_R[1,2]/)[0] }
 
 file_groups.each do |group,files|
   
@@ -129,6 +129,7 @@ file_groups.each do |group,files|
   meta_sets = metadata_to_imeta(metadata)
 
   tar_file = group + ".tar"
+  md5_file = tar_file + ".md5"
   
   unless File.exist?(tar_file)
     this_command = "tar -cvf #{tar_file} #{group}* #{metadata}"
@@ -136,6 +137,8 @@ file_groups.each do |group,files|
        warn this_command
     else
     	run(this_command)
+      md5 = "md5sum #{tar_file} > #{md5_file}"
+      run(md5)
     end
   end
 
@@ -151,6 +154,14 @@ file_groups.each do |group,files|
     
   command = "iput -R lshArchive -D tar -f #{tar_file} #{BASE_URL}/#{options.folder}/#{tar_file}"
 
+  if options.pretend
+	  warn command  
+  else
+  	run(command)
+  end
+
+  command = "iput -R lshArchive -f #{md5_file} #{BASE_URL}/#{options.folder}/#{md5_file}"
+  
   if options.pretend
 	  warn command  
   else
