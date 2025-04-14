@@ -110,6 +110,15 @@ BASE_URL = "/lsh/ngs"
 command = "imkdir /lsh/ngs/#{options.folder}"
 run(command)
 
+# If we have metadata for the run as a whole
+if File.exist?("Run.meta")
+  run_meta = metadata_to_imeta("Run.meta")
+  run_meta.each do |rm|
+    imeta_cmd = "imeta add -d #{BASE_URL}/#{options.folder} #{rm}"
+    run(imeta_cmd) unless options.pretend
+  end
+end
+
 file_groups = Dir.entries(Dir.getwd).select{|e| e.include?(".fastq.gz")}.group_by{|e| e.split(/_L00/)[0].split(/_R[1,2]/)[0] }
 
 file_groups.each do |group,files|

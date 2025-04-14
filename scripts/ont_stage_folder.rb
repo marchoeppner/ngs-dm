@@ -40,14 +40,15 @@ opts.on("-h","--help","Display the usage information") {
 opts.parse!
 
 abort "Must prodive an output directory!" unless options.output
+abort "No lookup file specified, exiting" unless otions.lookup
 
 output = options.output
 cmd("mkdir -p #{output}")
 
 lookup = {}
-IO.readlines(options.lookup).map {|l| lookup[l.split("\t")[1].strip] = l.split("\t")[0] }
+IO.readlines(options.lookup).map {|l| lookup[l.split("\t")[0].strip] = l.split("\t")[1].strip }	
 
-barcodes = Dir["#{options.pass}/barcode*"]
+barcodes = Dir["#{options.pass}/barcode*"].map {|b| b.strip }
 
 valid_barcodes = barcodes.select { |bc| (Dir[bc + "/*.fastq.gz"].sum {|f| File.size(f) }/100000) > 10 }
 
@@ -59,7 +60,7 @@ barcodes.each do |bc|
         b = bc.split("/")[-1]
         lookup.has_key?(b) ? lib = lookup[b] : lib = nil
 
-        abort "Barcode directory looks sane, but but no library specified #{lib}" unless lib
+        abort "Barcode directory looks sane, but but no library specified #{bc}" unless lib
 
         warn "Using barcode #{lib}"
 

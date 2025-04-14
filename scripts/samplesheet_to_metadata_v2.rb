@@ -77,6 +77,14 @@ meta = xlsx["Metadaten"] || raise("Missing metadata page!")
 ### Get project information from first sheet
 
 name = front[1][1]
+instrument = front[2][1]
+run_name = front[3][1]
+
+m = File.new("Run.meta","w+")
+m.puts "name\t#{name}\tstring"
+m.puts "instrument\t#{instrument}\tstring"
+m.puts "run\t#{run_name}\tstring"
+m.close
 
 # Parse the metadata
 

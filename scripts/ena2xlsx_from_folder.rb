@@ -28,6 +28,17 @@ require 'rubyXL/convenience_methods/font'
 require 'rubyXL/convenience_methods/workbook'
 require 'rubyXL/convenience_methods/worksheet'
 
+def get_run_id(fastq)
+
+    header = `zcat #{fastq} | head -n1`
+    elements = header.split(":")
+    instrument = elements[0].gsub("@","")
+    run = elements[2]
+
+    return { "instrument" => instrument, "run" => run }
+
+end
+
 ### Get the script arguments and open relevant files
 options = OpenStruct.new()
 opts = OptionParser.new()
@@ -63,7 +74,7 @@ json = JSON.parse(IO.readlines(options.json).join("\n"))
 
 experiment  = json["experiment"]["fields"]
 study       = json["study"]["fields"]
-sample      = json["sample"]["fields"]
+sample      = json["sample"]["fields"] 
 name        = options.json.split("/")[-1].split(".")[0]
 
 data = []
@@ -77,6 +88,8 @@ data << { "name" => "project_name", "cardinality" => "mandatory", "cv" => [  ], 
 data << { "name" => "read_length", "cardinality" => "mandatory", "cv" => [ "2x150","2x250","2x300",">1kb" ], "description" => "Read length", "field_type" => "TEXT_FIELD"}
 
 workbook = RubyXL::Workbook.new
+
+fastqs = Dir["*.fastq.gz"]
 
 ################
 # Cover page
@@ -95,6 +108,13 @@ cover.add_cell(0,1,name)
 cover.change_column_width(1, 20)
 cover.add_cell(1,0,"Projekt")
 cover.add_cell(1,1,options.name)
+
+info = get_run_id(fastqs[0])
+
+cover.add_cell(2,0,"Instrument")
+cover.add_cell(2,1,info["instrument"])
+cover.add_cell(3,0,"Run")
+cover.add_cell(3,1,info["run"])
 
 #####################
 # Metadata sheet
@@ -153,8 +173,6 @@ data_ordered.each_with_index do |data,i|
   end
 
 end
-
-fastqs = Dir["*.fastq.gz"]
 
 libs = fastqs.group_by{|f| f.split("_L00")[0].split(/_R[1,2]/)[0]}
 
