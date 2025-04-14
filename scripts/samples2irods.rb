@@ -23,6 +23,12 @@ require 'ostruct'
 
 ### Define modules and classes here
 
+class String
+	def black;          "\e[30m#{self}\e[0m" end
+	def red;            "\e[31m#{self}\e[0m" end
+	def green;          "\e[32m#{self}\e[0m" end
+end
+
 def metadata_to_string(file_name)
   
   answer = ""
@@ -84,9 +90,15 @@ end
 
 def run(command)
 
-  warn "Running: #{command}"
+  warn "Running: #{command.green}"
   system(command)
 
+end
+
+def check_irods
+	stdout_str, stderr_str, status = Open3.capture3("ils")
+	stderr_str.include?("Error") ? irods = false : irods = true
+	return irods
 end
 
 ### Get the script arguments and open relevant files
@@ -104,6 +116,10 @@ opts.on("-h","--help","Display the usage information") {
 opts.parse! 
 
 abort "Must provide iRODS collection name (--folder)" unless options.folder
+
+if !check_irods
+	abort "You are not authenticated with the iRODS service - please run `iinit`!".red
+end
 
 BASE_URL = "/lsh/ngs"
 
@@ -128,7 +144,7 @@ file_groups.each do |group,files|
   warn library_id
   metadata = library_id + ".meta"
 
-  abort "Could not find the metadata sheet (#{metadata}) for the sample #{group}" unless File.exist?(metadata)
+  abort "Could not find the metadata sheet (#{metadata}) for the sample #{group}".red unless File.exist?(metadata)
   
   next unless File.exist?(metadata)
 

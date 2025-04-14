@@ -22,8 +22,14 @@ require 'optparse'
 require 'ostruct'
 require 'date'
 
+class String
+	def black;          "\e[30m#{self}\e[0m" end
+	def red;            "\e[31m#{self}\e[0m" end
+	def green;          "\e[32m#{self}\e[0m" end
+end
+
 def cmd(text)
-    warn "#{DateTime.now} - #{text}"
+    warn "#{DateTime.now} - #{text}".green
     system(text)
 end
 ### Get the script arguments and open relevant files
@@ -55,12 +61,12 @@ valid_barcodes = barcodes.select { |bc| (Dir[bc + "/*.fastq.gz"].sum {|f| File.s
 barcodes.each do |bc|
 
     if !valid_barcodes.include?(bc)
-        warn "Skipping barcode #{bc} - no data. "
+        warn "Skipping barcode #{bc} - no data.".red
     else 
         b = bc.split("/")[-1]
         lookup.has_key?(b) ? lib = lookup[b] : lib = nil
 
-        abort "Barcode directory looks sane, but but no library specified #{bc}" unless lib
+        abort "Barcode directory looks sane, but but no library specified #{bc}".red unless lib
 
         warn "Using barcode #{lib}"
 
