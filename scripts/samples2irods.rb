@@ -20,6 +20,7 @@
 
 require 'optparse'
 require 'ostruct'
+require 'open3'
 
 ### Define modules and classes here
 
@@ -130,7 +131,7 @@ run(command)
 if File.exist?("Run.meta")
   run_meta = metadata_to_imeta("Run.meta")
   run_meta.each do |rm|
-    imeta_cmd = "imeta add -d #{BASE_URL}/#{options.folder} #{rm}"
+    imeta_cmd = "imeta add -C #{BASE_URL}/#{options.folder} #{rm}"
     run(imeta_cmd) unless options.pretend
   end
 end

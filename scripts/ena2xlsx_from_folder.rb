@@ -33,9 +33,9 @@ def get_run_id(fastq)
     header = `zcat #{fastq} | head -n1`
     elements = header.split(":")
     instrument = elements[0].gsub("@","")
-    run = elements[2]
-
-    return { "instrument" => instrument, "run" => run }
+    flowcell = elements[2]
+    
+    return { "instrument" => instrument, "flowcell" => flowcell }
 
 end
 
@@ -113,8 +113,8 @@ info = get_run_id(fastqs[0])
 
 cover.add_cell(2,0,"Instrument")
 cover.add_cell(2,1,info["instrument"])
-cover.add_cell(3,0,"Run")
-cover.add_cell(3,1,info["run"])
+cover.add_cell(3,0,"Flowcell")
+cover.add_cell(3,1,info["flowcell"])
 
 #####################
 # Metadata sheet
